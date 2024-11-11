@@ -22,8 +22,6 @@ func TestBasicCommand(t *testing.T) {
 }
 
 func TestLoginCommand(t *testing.T) {
-	// Setup - might need to create a temporary config file
-
 	t.Run("login with no username", func(t *testing.T) {
 		cmd := exec.Command("go", "run", ".", "login")
 		err := cmd.Run()
