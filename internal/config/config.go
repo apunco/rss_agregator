@@ -78,8 +78,8 @@ func write(cfg *Config) error {
 
 func createDefaultConfig() error {
 	defaultConfig := Config{
-		DbUrl:           "connection_string_goes_here",
-		CurrentUserName: "username_goes_here",
+		DbUrl:           "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable",
+		CurrentUserName: os.Getenv("USER"),
 	}
 	return write(&defaultConfig)
 
