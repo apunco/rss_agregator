@@ -1,10 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
+	_ "github.com/lib/pq"
+
 	config "github.com/apunco/go/rss_agregator/internal/config"
+	"github.com/apunco/go/rss_agregator/internal/database"
 )
 
 func main() {
@@ -19,11 +23,23 @@ func main() {
 		cfg: &conf,
 	}
 
+	db, err := sql.Open("postgres", appState.cfg.DbUrl)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	appState.db = database.New(db)
+
 	cmds := commands{
 		commands: make(map[string]func(*state, command) error),
 	}
 
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", resetHandler)
+	cmds.register("users", getUsersHandler)
+	cmds.register("agg", getFeedHandler)
 
 	args := os.Args
 
@@ -39,7 +55,7 @@ func main() {
 
 	err = cmds.run(&appState, cmd)
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		fmt.Fprintf(os.Stderr, "err: %v\n", err)
 		os.Exit(1)
 	}
 }

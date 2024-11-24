@@ -9,7 +9,7 @@ import (
 const configFileName = ".gatorconfig.json"
 
 type Config struct {
-	DbUrl           string `json:"DbUrl"`
+	DbUrl           string `json:"database_url"`
 	CurrentUserName string `json:"CurrentUserName"`
 }
 
@@ -78,7 +78,7 @@ func write(cfg *Config) error {
 
 func createDefaultConfig() error {
 	defaultConfig := Config{
-		DbUrl:           "postgres://postgres:postgres@localhost:5432/gator?sslmode=disable",
+		DbUrl:           "postgres://postgres:postgres@localhost:5432/gator?search_path=gator,public&sslmode=disable",
 		CurrentUserName: os.Getenv("USER"),
 	}
 	return write(&defaultConfig)
