@@ -16,3 +16,7 @@ RETURNING *;
 
 -- name: GetUsers :many
 SELECT * FROM gator.users;
+
+-- name: GetUserName :one
+SELECT name from gator.users
+WHERE id = $1;

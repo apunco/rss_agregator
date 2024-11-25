@@ -8,6 +8,8 @@ package database
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -62,6 +64,18 @@ func (q *Queries) GetUserByName(ctx context.Context, name string) (GatorUser, er
 		&i.Name,
 	)
 	return i, err
+}
+
+const getUserName = `-- name: GetUserName :one
+SELECT name from gator.users
+WHERE id = $1
+`
+
+func (q *Queries) GetUserName(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserName, id)
+	var name string
+	err := row.Scan(&name)
+	return name, err
 }
 
 const getUsers = `-- name: GetUsers :many

@@ -4,8 +4,8 @@ CREATE TABLE gator.feeds (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     name TEXT UNIQUE NOT NULL,
-    url TEXT UNIQUE,
-    added_by UUID,
+    url TEXT UNIQUE NOT NULL,
+    added_by UUID NOT NULL,
     CONSTRAINT fk_users
     FOREIGN KEY (added_by)
     REFERENCES gator.users(id) ON DELETE CASCADE

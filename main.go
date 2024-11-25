@@ -41,6 +41,9 @@ func main() {
 	cmds.register("users", getUsersHandler)
 	cmds.register("agg", getFeedHandler)
 	cmds.register("addfeed", addFeedHandler)
+	cmds.register("feeds", getFeedsHandler)
+	cmds.register("follow", addFeedFollowHandler)
+	cmds.register("following", getFollowingForUserHandler)
 
 	args := os.Args
 

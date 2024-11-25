@@ -7,3 +7,10 @@ VALUES (NOW(),
         $3
 )
 RETURNING *;
+
+-- name: GetFeeds :many
+SELECT * FROM gator.feeds;
+
+-- name: GetFeedByUrl :one
+SELECT * FROM gator.feeds
+WHERE url = $1;

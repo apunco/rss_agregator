@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -25,8 +24,8 @@ RETURNING id, created_at, updated_at, name, url, added_by
 
 type AddFeedParams struct {
 	Name    string
-	Url     sql.NullString
-	AddedBy uuid.NullUUID
+	Url     string
+	AddedBy uuid.UUID
 }
 
 func (q *Queries) AddFeed(ctx context.Context, arg AddFeedParams) (GatorFeed, error) {
@@ -41,4 +40,57 @@ func (q *Queries) AddFeed(ctx context.Context, arg AddFeedParams) (GatorFeed, er
 		&i.AddedBy,
 	)
 	return i, err
+}
+
+const getFeedByUrl = `-- name: GetFeedByUrl :one
+SELECT id, created_at, updated_at, name, url, added_by FROM gator.feeds
+WHERE url = $1
+`
+
+func (q *Queries) GetFeedByUrl(ctx context.Context, url string) (GatorFeed, error) {
+	row := q.db.QueryRowContext(ctx, getFeedByUrl, url)
+	var i GatorFeed
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Url,
+		&i.AddedBy,
+	)
+	return i, err
+}
+
+const getFeeds = `-- name: GetFeeds :many
+SELECT id, created_at, updated_at, name, url, added_by FROM gator.feeds
+`
+
+func (q *Queries) GetFeeds(ctx context.Context) ([]GatorFeed, error) {
+	rows, err := q.db.QueryContext(ctx, getFeeds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GatorFeed
+	for rows.Next() {
+		var i GatorFeed
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Url,
+			&i.AddedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
