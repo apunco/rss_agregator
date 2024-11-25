@@ -5,10 +5,20 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type GatorFeed struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string
+	Url       sql.NullString
+	AddedBy   uuid.NullUUID
+}
 
 type GatorUser struct {
 	ID        uuid.UUID
