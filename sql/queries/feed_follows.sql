@@ -22,3 +22,8 @@ FROM gator.feed_follows ff
 JOIN gator.users u on ff.user_id = u.id
 JOIN gator.feeds f on ff.feed_id = f.id
 WHERE ff.user_id = $1;
+
+-- name: DeleteFeedFollowForUser :exec
+DELETE FROM gator.feed_follows
+WHERE user_id = $1
+AND feed_id = $2;

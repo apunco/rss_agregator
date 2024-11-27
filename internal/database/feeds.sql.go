@@ -19,7 +19,7 @@ VALUES (NOW(),
         $2,
         $3
 )
-RETURNING id, created_at, updated_at, name, url, added_by
+RETURNING id, created_at, updated_at, name, url, added_by, last_fetched_at
 `
 
 type AddFeedParams struct {
@@ -38,12 +38,13 @@ func (q *Queries) AddFeed(ctx context.Context, arg AddFeedParams) (GatorFeed, er
 		&i.Name,
 		&i.Url,
 		&i.AddedBy,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeedByUrl = `-- name: GetFeedByUrl :one
-SELECT id, created_at, updated_at, name, url, added_by FROM gator.feeds
+SELECT id, created_at, updated_at, name, url, added_by, last_fetched_at FROM gator.feeds
 WHERE url = $1
 `
 
@@ -57,12 +58,13 @@ func (q *Queries) GetFeedByUrl(ctx context.Context, url string) (GatorFeed, erro
 		&i.Name,
 		&i.Url,
 		&i.AddedBy,
+		&i.LastFetchedAt,
 	)
 	return i, err
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT id, created_at, updated_at, name, url, added_by FROM gator.feeds
+SELECT id, created_at, updated_at, name, url, added_by, last_fetched_at FROM gator.feeds
 `
 
 func (q *Queries) GetFeeds(ctx context.Context) ([]GatorFeed, error) {
@@ -81,6 +83,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]GatorFeed, error) {
 			&i.Name,
 			&i.Url,
 			&i.AddedBy,
+			&i.LastFetchedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -93,4 +96,37 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]GatorFeed, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getNextFeedToFetch = `-- name: GetNextFeedToFetch :one
+SELECT id, created_at, updated_at, name, url, added_by, last_fetched_at from gator.feeds
+ORDER BY last_fetched_at asc
+NULLS FIRST
+`
+
+func (q *Queries) GetNextFeedToFetch(ctx context.Context) (GatorFeed, error) {
+	row := q.db.QueryRowContext(ctx, getNextFeedToFetch)
+	var i GatorFeed
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Url,
+		&i.AddedBy,
+		&i.LastFetchedAt,
+	)
+	return i, err
+}
+
+const markedFeedFetched = `-- name: MarkedFeedFetched :exec
+UPDATE gator.feeds
+SET updated_at = NOW(),
+last_fetched_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) MarkedFeedFetched(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markedFeedFetched, id)
+	return err
 }

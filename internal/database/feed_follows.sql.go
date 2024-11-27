@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,8 +62,24 @@ func (q *Queries) AddFeedFollow(ctx context.Context, arg AddFeedFollowParams) (A
 	return i, err
 }
 
+const deleteFeedFollowForUser = `-- name: DeleteFeedFollowForUser :exec
+DELETE FROM gator.feed_follows
+WHERE user_id = $1
+AND feed_id = $2
+`
+
+type DeleteFeedFollowForUserParams struct {
+	UserID uuid.UUID
+	FeedID uuid.UUID
+}
+
+func (q *Queries) DeleteFeedFollowForUser(ctx context.Context, arg DeleteFeedFollowForUserParams) error {
+	_, err := q.db.ExecContext(ctx, deleteFeedFollowForUser, arg.UserID, arg.FeedID)
+	return err
+}
+
 const getFeedsForUser = `-- name: GetFeedsForUser :many
-SELECT f.id, f.created_at, f.updated_at, f.name, f.url, f.added_by, u.name AS user_name
+SELECT f.id, f.created_at, f.updated_at, f.name, f.url, f.added_by, f.last_fetched_at, u.name AS user_name
 FROM gator.feed_follows ff
 JOIN gator.users u on ff.user_id = u.id
 JOIN gator.feeds f on ff.feed_id = f.id
@@ -70,13 +87,14 @@ WHERE ff.user_id = $1
 `
 
 type GetFeedsForUserRow struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Name      string
-	Url       string
-	AddedBy   uuid.UUID
-	UserName  string
+	ID            uuid.UUID
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Name          string
+	Url           string
+	AddedBy       uuid.UUID
+	LastFetchedAt sql.NullTime
+	UserName      string
 }
 
 func (q *Queries) GetFeedsForUser(ctx context.Context, userID uuid.UUID) ([]GetFeedsForUserRow, error) {
@@ -95,6 +113,7 @@ func (q *Queries) GetFeedsForUser(ctx context.Context, userID uuid.UUID) ([]GetF
 			&i.Name,
 			&i.Url,
 			&i.AddedBy,
+			&i.LastFetchedAt,
 			&i.UserName,
 		); err != nil {
 			return nil, err

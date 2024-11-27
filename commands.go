@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 )
 
@@ -18,7 +17,7 @@ type commands struct {
 
 func (c *commands) register(name string, f func(*state, command) error) {
 	c.commands[name] = f
-	fmt.Println("command " + name + " registered for use")
+	//fmt.Println("command " + name + " registered for use")
 }
 
 func (c *commands) run(s *state, cmd command) error {

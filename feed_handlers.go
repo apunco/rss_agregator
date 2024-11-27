@@ -4,30 +4,35 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/apunco/go/rss_agregator/internal/database"
 )
 
 func getFeedHandler(s *state, cmd command) error {
+	if len(cmd.args) != 1 {
+		return errors.New("missing argument <time_between_reqs>")
+	}
 
-	feed, err := fetchFeed(context.Background(), "https://wagslane.dev/index.xml")
+	fmt.Printf("Collecting feeds every %s", cmd.args[0])
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
+		fmt.Printf("error parsing time between requests %s", err)
 		return err
 	}
 
-	fmt.Printf("%+v\n", feed)
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		if err = scrapeFeeds(s); err != nil {
+			fmt.Printf("error scraping feed %s", err)
+			return err
+		}
+	}
 }
 
-func addFeedHandler(s *state, cmd command) error {
+func addFeedHandler(s *state, cmd command, user database.GatorUser) error {
 	if len(cmd.args) != 2 {
 		return errors.New("missing argument <name> <url>")
-	}
-
-	user, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		fmt.Printf("error getting current user %s", err)
-		return err
 	}
 
 	args := database.AddFeedParams{
@@ -86,15 +91,9 @@ func getFeedsHandler(s *state, cmd command) error {
 	return nil
 }
 
-func addFeedFollowHandler(s *state, cmd command) error {
+func addFeedFollowHandler(s *state, cmd command, user database.GatorUser) error {
 	if len(cmd.args) != 1 {
 		return errors.New("missing argument <name> <url>")
-	}
-
-	user, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		fmt.Printf("error getting current user %s", err)
-		return err
 	}
 
 	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
@@ -119,15 +118,7 @@ func addFeedFollowHandler(s *state, cmd command) error {
 	return nil
 }
 
-func getFollowingForUserHandler(s *state, cmd command) error {
-
-	userName := s.cfg.CurrentUserName
-	user, err := s.db.GetUserByName(context.Background(), userName)
-	if err != nil {
-		fmt.Printf("error getting user id %s", err)
-		return err
-	}
-
+func getFollowingForUserHandler(s *state, cmd command, user database.GatorUser) error {
 	feeds, err := s.db.GetFeedsForUser(context.Background(), user.ID)
 	if err != nil {
 		fmt.Printf("error getting feeds for user %s", err)
@@ -136,6 +127,30 @@ func getFollowingForUserHandler(s *state, cmd command) error {
 
 	for _, feed := range feeds {
 		fmt.Println(feed)
+	}
+
+	return nil
+}
+
+func unfollowFeedHandler(s *state, cmd command, user database.GatorUser) error {
+	if len(cmd.args) != 1 {
+		return errors.New("missing argument <feed url>")
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		fmt.Printf("error getting feed follow %s", err)
+		return err
+	}
+
+	args := database.DeleteFeedFollowForUserParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}
+
+	if err = s.db.DeleteFeedFollowForUser(context.Background(), args); err != nil {
+		fmt.Printf("error deleting feed follow %s", err)
+		return err
 	}
 
 	return nil
